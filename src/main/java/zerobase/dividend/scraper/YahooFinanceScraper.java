@@ -15,6 +15,7 @@ import java.util.List;
 public class YahooFinanceScraper {
     private static final String STATISTICS_URL=
 "https://finance.yahoo.com/quote/O/history?period1=1680444326&period2=1712066726&interval=1mo&filter=history&frequency=1mo&includeAdjustedClose=true";
+    private static final String SUMMARY_URL="https://finance.yahoo.com/quote/%s?p=%s";
     public static final long START_TIME=86400;//60*60*24
     public ScrapedResult scrap(Company company){
         var scrapResult=new ScrapedResult();
@@ -41,7 +42,14 @@ public class YahooFinanceScraper {
                 dividends.add(Dividend.builder().date(LocalDateTime.of
                         (year,month,day,0,0)).dividend(dividend).build());
                 //System.out.println(year + "/" + month + "/" + day + "->" + dividend);
-        }scrapResult.setDividendEntities(dividends);}
-        catch (IOException e){e.printStackTrace();}return scrapResult;}
-    public Company scrapCompanyByTicker(String ticker){return null;}
+        }scrapResult.setDividends(dividends);}//[1]
+        catch (IOException e){//TODO
+            e.printStackTrace();}return scrapResult;}
+    public Company scrapCompanyByTicker(String ticker){
+        String url=String.format(SUMMARY_URL,ticker,ticker);
+    try{Document document=Jsoup.connect(url).get();
+        Element titleEle=document.getElementsByTag("h1").get(0);
+        String title=titleEle.text().split(" - ")[1].trim();
+        return Company.builder().ticker(ticker).name(title).build();
+    }catch (IOException e){e.printStackTrace();}return null;}
 }
