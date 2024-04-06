@@ -1,7 +1,9 @@
 package zerobase.dividend.service;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.util.ObjectUtils;
+import zerobase.dividend.exception.impl.NoCompanyException;
 import zerobase.dividend.model.Company;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,6 +41,12 @@ public class CompanyService {
                 .map(e->new DividendEntity(companyEntity.getId(),e))
                 .collect(Collectors.toList());this.dividendRepository
                 .saveAll(dividendEntityList);return company;}
+    public List<String> getCompanyNamesByKeyword(String keyword){
+        Pageable limit= PageRequest.of(0,10);
+        Page<CompanyEntity> companyEntities=this.companyRepository
+                .findByNameStartingWithIgnoreCase(keyword,limit);
+        return companyEntities.stream().map(e->e.getName())
+                .collect(Collectors.toList());}
     public void addAutocompleteKeyword(String keyword){
         this.trie.put(keyword,null);}
     public List<String> autocomplete(String keyword){
@@ -46,4 +54,11 @@ public class CompanyService {
                 .stream().collect(Collectors.toList());}
     public void deleteAutocompleteKeyword(String keyword){
         this.trie.remove(keyword);}
+    public String deleteCompany(String ticker){
+        var company=this.companyRepository.findByTicker(ticker)
+                .orElseThrow(()->new NoCompanyException());
+        this.dividendRepository.deleteAllByCompanyId(company.getId());
+        this.companyRepository.delete(company);
+        this.deleteAutocompleteKeyword(company.getName());
+        return company.getName();}
 }
